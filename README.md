@@ -41,7 +41,9 @@ yaml
 
 ```bash
 pip install requests
+
 python diary_gui.py
+
 🪄 使用打包版 EXE
 若你從 Release 下載執行檔版本，只需 雙擊 diary_gui.exe 即可使用。
 
@@ -65,12 +67,6 @@ diary_gui.json
 程式啟動時或點選「檢查更新」按鈕，
 會讀取 GitHub 上的版本檔案：
 
-bash
-複製程式碼
-https://raw.githubusercontent.com/yyy645815/diary/main/version.txt
-若偵測版本號與本地端不同，會提示使用者開啟：
-
-bash
 複製程式碼
 https://github.com/yyy645815/diary/releases/latest
 以手動下載最新版。
