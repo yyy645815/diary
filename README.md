@@ -73,13 +73,14 @@
 
 ### 🧩 檔案結構（Project Structure）
 
-
 📁 diary/
-├─ diary\_gui.py     \# 程式主邏輯
-├─ version.txt      \# 線上版本號 (供程式比對更新使用)
-├─ diary\_gui.json   \# 使用中自動產生，儲存所有日記資料 (請勿手動修改)
-├─ .gitignore       \# 忽略不需上傳的檔案設定
-└─ README.md        \# 專案說明文件 (您正在閱讀的文件)
+│
+├── 🧠 diary_gui.py — 主程式（Tkinter 介面）
+├── 🧩 version.txt — 線上版本號（比對更新使用）
+├── 📓 diary_gui.json — 使用中自動產生，儲存日記內容
+├── ⚙️ .gitignore — 忽略暫存檔設定
+└── 📘 README.md — 專案說明文件
+
 
 ## 🧱 開發與維護
 
