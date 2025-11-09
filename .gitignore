@@ -1,0 +1,14 @@
+# 不上傳批次檔
+upload.bat
+
+# 不上傳編譯檔案
+*.spec
+/dist/
+/build/
+/__pycache__/
+
+# 不上傳暫存檔
+*.log
+*.tmp
+*.bak
+*.swp
