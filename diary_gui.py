@@ -7,8 +7,14 @@ from typing import Dict
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
+import requests   # 用來從 GitHub 抓版本號
+
 # ---------- 版本資訊 ----------
-APP_VERSION = "v1.0.0"   # 想改版本號直接改這裡就好
+# 本機程式版本號（更新程式時請同步修改這一行 & GitHub 的 version.txt）
+APP_VERSION = "v1.0.0"
+
+# 你的 GitHub 版本檔（raw）網址
+GITHUB_VERSION_URL = "https://raw.githubusercontent.com/yyy645815/diary/main/version.txt"
 
 
 # ---------- 資料結構 ----------
@@ -46,7 +52,6 @@ class DiaryApp:
         self.diaries: Dict[str, DiaryEntry] = {}
         self.filename = "diary_gui.json"
 
-        # 建立介面
         self.build_ui()
 
     def build_ui(self):
@@ -97,13 +102,15 @@ class DiaryApp:
         ttk.Button(btn_frame, text="儲存本篇", command=self.save_current_entry).pack(side="left", padx=2)
         ttk.Button(btn_frame, text="刪除這篇", command=self.delete_current_entry).pack(side="left", padx=2)
 
+        # 右側：檢查更新 + 存取檔案
+        ttk.Button(btn_frame, text="檢查更新", command=self.check_update).pack(side="right", padx=2)
         ttk.Button(btn_frame, text="讀取檔案", command=self.load_from_file).pack(side="right", padx=2)
         ttk.Button(btn_frame, text="儲存到檔案", command=self.save_to_file).pack(side="right", padx=2)
 
-        # 在按鈕列中顯示版本（左下角）
+        # 左下角顯示版本
         ttk.Label(btn_frame, text=f"版本：{APP_VERSION}").pack(side="left", padx=10)
 
-        # 調整 grid 權重，讓視窗可以拉伸
+        # 讓視窗可拉伸
         self.root.columnconfigure(0, weight=1)
         self.root.columnconfigure(1, weight=3)
         self.root.rowconfigure(0, weight=1)
@@ -115,14 +122,13 @@ class DiaryApp:
         self.listbox.delete(0, tk.END)
         for date in sorted(self.diaries.keys()):
             e = self.diaries[date]
-            # 摘要用第一行
             first_line = e.內容.splitlines()[0] if e.內容 else ""
             if len(first_line) > 10:
                 first_line = first_line[:10] + "..."
             self.listbox.insert(tk.END, f"{date}（{e.心情}） {first_line}")
 
     def on_select_date(self, event=None):
-        """當使用者在 listbox 選擇某一天時，載入內容到右邊"""
+        """點選左邊日期時載入內容"""
         selection = self.listbox.curselection()
         if not selection:
             return
@@ -134,7 +140,6 @@ class DiaryApp:
         self.load_entry_to_form(date)
 
     def load_entry_to_form(self, date: str):
-        """將指定日期的日記載入到右側編輯欄位"""
         entry = self.diaries.get(date)
         if not entry:
             return
@@ -150,15 +155,15 @@ class DiaryApp:
         self.entry_mood.delete(0, tk.END)
         self.text_content.delete("1.0", tk.END)
 
-    # ---------- 按鈕功能 ----------
+    # ---------- 日記操作 ----------
 
     def new_today(self):
-        """今天新日記：日期設為今天，清空內容"""
+        """今天新日記"""
         self.clear_form()
         self.entry_date.insert(0, 今天字串())
 
     def new_custom_date(self):
-        """新日記（指定日期）：彈出對話框問日期"""
+        """指定日期新日記"""
         d = simpledialog.askstring("指定日期", "請輸入日期（YYYY-MM-DD）：")
         if not d:
             return
@@ -189,7 +194,7 @@ class DiaryApp:
         messagebox.showinfo("成功", f"{date} 的日記已儲存。")
 
     def delete_current_entry(self):
-        """刪除目前右邊日期欄位代表的那一篇"""
+        """刪除目前日期欄位所代表的日記"""
         date = self.entry_date.get().strip()
         if not date:
             messagebox.showerror("錯誤", "請先在右邊輸入日期，或從左邊選一篇。")
@@ -223,6 +228,29 @@ class DiaryApp:
         self.diaries = {d["日期"]: DiaryEntry(**d) for d in data}
         self.refresh_listbox()
         messagebox.showinfo("讀取成功", f"已從 {self.filename} 載入 {len(self.diaries)} 筆日記。")
+
+    # ---------- 檢查更新 ----------
+
+    def check_update(self):
+        """到 GitHub 抓 version.txt，比對是否有新版本"""
+        try:
+            resp = requests.get(GITHUB_VERSION_URL, timeout=5)
+            resp.raise_for_status()
+            latest = resp.text.strip()
+        except Exception as e:
+            messagebox.showerror("錯誤", f"無法取得線上版本資訊：\n{e}")
+            return
+
+        if latest == APP_VERSION:
+            messagebox.showinfo("版本檢查", f"目前已是最新版本：{APP_VERSION}")
+        else:
+            messagebox.showinfo(
+                "有新版本！",
+                f"目前版本：{APP_VERSION}\n"
+                f"最新版本：{latest}\n\n"
+                "請到 GitHub 下載最新版程式：\n"
+                "https://github.com/yyy645815/diary"
+            )
 
 
 # ---------- 程式進入點 ----------
