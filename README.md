@@ -52,7 +52,7 @@
 
 ### 🪄 方法二：使用打包版 EXE (推薦一般使用者)
 
-若您從 [GitHub Releases](https://www.google.com/search?q=GitHub%2520Releases) 下載執行檔版本，只需**雙擊 `diary_gui.exe`** 即可使用。
+若您從 [GitHub Releases](https://github.com/yyy645815/diary/releases) 下載執行檔版本，只需**雙擊 `diary_gui.exe`** 即可使用。
 
 -----
 
@@ -80,7 +80,7 @@
 
 程式啟動時或點選「檢查更新」按鈕時，會連線讀取 GitHub 上的版本檔案 (`version.txt`) 以確認是否有新版。
 
-  * **🔗 最新版本下載：** [GitHub Releases](https://www.google.com/search?q=GitHub%2520Releases)
+  * **🔗 最新版本下載：** [GitHub Releases](https://github.com/yyy645815/diary/releases)
 
 -----
 
