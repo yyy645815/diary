@@ -7,6 +7,9 @@ from typing import Dict
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
+# ---------- 版本資訊 ----------
+APP_VERSION = "v1.0.0"   # 想改版本號直接改這裡就好
+
 
 # ---------- 資料結構 ----------
 
@@ -36,7 +39,8 @@ def 檢查日期格式(date_str: str) -> bool:
 class DiaryApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("📝 日記本（GUI 版）")
+        # 視窗標題顯示版本
+        self.root.title(f"📝 日記本（GUI 版 {APP_VERSION}）")
 
         # 日記資料：用 dict 存，key = 日期
         self.diaries: Dict[str, DiaryEntry] = {}
@@ -92,8 +96,12 @@ class DiaryApp:
         ttk.Button(btn_frame, text="新日記（指定日期）", command=self.new_custom_date).pack(side="left", padx=2)
         ttk.Button(btn_frame, text="儲存本篇", command=self.save_current_entry).pack(side="left", padx=2)
         ttk.Button(btn_frame, text="刪除這篇", command=self.delete_current_entry).pack(side="left", padx=2)
+
         ttk.Button(btn_frame, text="讀取檔案", command=self.load_from_file).pack(side="right", padx=2)
         ttk.Button(btn_frame, text="儲存到檔案", command=self.save_to_file).pack(side="right", padx=2)
+
+        # 在按鈕列中顯示版本（左下角）
+        ttk.Label(btn_frame, text=f"版本：{APP_VERSION}").pack(side="left", padx=10)
 
         # 調整 grid 權重，讓視窗可以拉伸
         self.root.columnconfigure(0, weight=1)
@@ -119,7 +127,6 @@ class DiaryApp:
         if not selection:
             return
         index = selection[0]
-        # listbox 裡的順序和 sorted(self.diaries.keys()) 一致
         dates = sorted(self.diaries.keys())
         if index >= len(dates):
             return
@@ -182,7 +189,7 @@ class DiaryApp:
         messagebox.showinfo("成功", f"{date} 的日記已儲存。")
 
     def delete_current_entry(self):
-        """刪除目前 listbox 選中的那一篇，或右邊日期欄填的那一天"""
+        """刪除目前右邊日期欄位代表的那一篇"""
         date = self.entry_date.get().strip()
         if not date:
             messagebox.showerror("錯誤", "請先在右邊輸入日期，或從左邊選一篇。")
