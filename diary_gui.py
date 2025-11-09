@@ -4,14 +4,17 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 from typing import Dict
 
+from tkcalendar import DateEntry
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
+
+
 
 import requests   # 用來從 GitHub 抓版本號
 
 # ---------- 版本資訊 ----------
 # 本機程式版本號（更新程式時請同步修改這一行 & GitHub 的 version.txt）
-APP_VERSION = "v1.1.0"
+APP_VERSION = "v1.1.1"
 
 # 你的 GitHub 版本檔（raw）網址
 GITHUB_VERSION_URL = "https://raw.githubusercontent.com/yyy645815/diary/main/version.txt"
@@ -87,8 +90,22 @@ class DiaryApp:
         date_row = ttk.Frame(right_frame)
         date_row.pack(fill="x", pady=2)
         ttk.Label(date_row, text="日期 (YYYY-MM-DD)：").pack(side="left")
+
+        # 原本的文字輸入框
         self.entry_date = ttk.Entry(date_row, width=15)
         self.entry_date.pack(side="left")
+
+        # ★ 新增：可點選的小日曆
+        self.date_picker = DateEntry(
+            date_row,
+            width=12,
+            date_pattern="yyyy-mm-dd"  # 讓格式直接是 2025-11-09 這種
+        )
+        self.date_picker.pack(side="left", padx=5)
+
+        # 選到日期時觸發事件
+        self.date_picker.bind("<<DateEntrySelected>>", self.on_pick_date)
+
 
         # 心情
         mood_row = ttk.Frame(right_frame)
@@ -116,6 +133,8 @@ class DiaryApp:
         ttk.Button(btn_frame, text="新日記（指定日期）", command=self.new_custom_date).pack(side="left", padx=2)
         ttk.Button(btn_frame, text="儲存本篇", command=self.save_current_entry).pack(side="left", padx=2)
         ttk.Button(btn_frame, text="刪除這篇", command=self.delete_current_entry).pack(side="left", padx=2)
+        # ★ 新增：重新整理日期列表按鈕
+        ttk.Button(btn_frame, text="重新整理列表", command=self.refresh_listbox).pack(side="left", padx=2)
 
         # 右側：檢查更新 + 存取檔案
         ttk.Button(btn_frame, text="檢查更新", command=self.check_update).pack(side="right", padx=2)
@@ -208,11 +227,13 @@ class DiaryApp:
         self.save_current_entry(silent=True)
         self.clear_form()
         self.entry_date.insert(0, 今天字串())
+        self.refresh_listbox()
 
     def new_custom_date(self):
         """指定日期新日記"""
         # 先靜默存目前內容
         self.save_current_entry(silent=True)
+        self.refresh_listbox()
 
         d = simpledialog.askstring("指定日期", "請輸入日期（YYYY-MM-DD）：")
         if not d:
@@ -224,35 +245,61 @@ class DiaryApp:
         self.clear_form()
         self.entry_date.insert(0, d)
 
+    def on_pick_date(self, event=None):
+        """從右邊日曆選取日期時的處理"""
+        # 先靜默存一下目前正在編輯的內容，避免遺失
+        self.save_current_entry(silent=True)
+
+        # 從 DateEntry 取得日期（datetime.date）
+        d = self.date_picker.get_date()
+        date_str = d.strftime("%Y-%m-%d")
+
+        # 把日期填進文字框
+        self.entry_date.delete(0, tk.END)
+        self.entry_date.insert(0, date_str)
+
+        # 如果這一天已有日記 → 直接載入
+        if date_str in self.diaries:
+            self.load_entry_to_form(date_str)
+        else:
+            # 沒有的話就當「新日記」，清空內容但保留日期
+            self.clear_form()
+            self.entry_date.insert(0, date_str)
+
+
     def save_current_entry(self, silent: bool = False):
-        """
-        儲存右邊正在編輯的這一篇
-        silent=True 時不跳出成功/錯誤視窗（給自動儲存用）
-        """
-        date = self.entry_date.get().strip()
-        mood = self.entry_mood.get().strip()
-        content = self.text_content.get("1.0", tk.END).rstrip()
+            """
+            儲存右邊正在編輯的這一篇
+            silent=True 時不跳出成功/錯誤視窗（給自動儲存用）
+            """
+            date = self.entry_date.get().strip()
+            mood = self.entry_mood.get().strip()
+            content = self.text_content.get("1.0", tk.END).rstrip()
 
-        # 沒日期就不存（自動儲存時安靜略過）
-        if not date:
+            # 沒日期就不存（自動儲存時安靜略過）
+            if not date:
+                if not silent:
+                    messagebox.showerror("錯誤", "日期不能是空的。")
+                return
+            if not 檢查日期格式(date):
+                if not silent:
+                    messagebox.showerror("錯誤", "日期格式錯誤，請用 YYYY-MM-DD。")
+                return
+            if not mood:
+                mood = "（未填心情）"
+
+            # 更新內存資料
+            self.diaries[date] = DiaryEntry(日期=date, 心情=mood, 內容=content or "(空白)")
+
+            # 🔧 只在「不是靜默模式」時才重畫列表
             if not silent:
-                messagebox.showerror("錯誤", "日期不能是空的。")
-            return
-        if not 檢查日期格式(date):
+                self.refresh_listbox()
+
+            # 寫入 JSON 檔，順便更新「上次自動儲存時間」
+            self._write_json()
+
             if not silent:
-                messagebox.showerror("錯誤", "日期格式錯誤，請用 YYYY-MM-DD。")
-            return
-        if not mood:
-            mood = "（未填心情）"
-
-        self.diaries[date] = DiaryEntry(日期=date, 心情=mood, 內容=content or "(空白)")
-        # ★ 這一行很重要：重畫左邊日期列表
-        self.refresh_listbox()
-        
-        self._write_json()
-
-        if not silent:
-            messagebox.showinfo("成功", f"{date} 的日記已儲存。")
+                messagebox.showinfo("成功", f"{date} 的日記已儲存。")
 
     def delete_current_entry(self):
         """刪除目前日期欄位所代表的日記"""
