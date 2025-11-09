@@ -12,3 +12,6 @@ upload.bat
 *.tmp
 *.bak
 *.swp
+
+# 不上傳日記存檔
+diary_gui.json
