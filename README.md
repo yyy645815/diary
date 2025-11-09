@@ -46,7 +46,12 @@ python diary_gui.py
 
 若版本不同，會提示「有新版本，請到 GitHub 下載」。
 
-https://github.com/yyy645815/diary/
+## 📥 下載
+
+最新版本下載：
+[👉 前往 GitHub Releases](https://github.com/yyy645815/diary/releases/latest)
+
+
 
 🌟 範例畫面（執行後）
 📝 日記本（GUI 版 v1.0.0）
