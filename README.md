@@ -1,9 +1,8 @@
-````markdown
 # 📝 Diary GUI — 日記記錄程式
 
 **版本：v1.1.1**
 
-![GitHub version](https://img.shields.io/badge/version-v1.1.1-blue.svg)
+[![GitHub version](https://img.shields.io/badge/version-v1.1.1-blue.svg)](https://github.com/yyy645815/diary)
 
 ## 📘 程式簡介
 
