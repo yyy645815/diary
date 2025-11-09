@@ -103,4 +103,4 @@
 
 ## 💬 聯絡方式
 
-如有錯誤回報、功能建議或合作洽詢，歡迎透過 [GitHub Issues](https://www.google.com/search?q=GitHub%2520Issues) 提出！
+如有錯誤回報、功能建議或合作洽詢，歡迎透過 [GitHub Issues](https://github.com/yyy645815/diary/issues) 提出！
