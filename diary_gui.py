@@ -11,7 +11,7 @@ import requests   # 用來從 GitHub 抓版本號
 
 # ---------- 版本資訊 ----------
 # 本機程式版本號（更新程式時請同步修改這一行 & GitHub 的 version.txt）
-APP_VERSION = "v1.0.0"
+APP_VERSION = "v1.0.1"
 
 # 你的 GitHub 版本檔（raw）網址
 GITHUB_VERSION_URL = "https://raw.githubusercontent.com/yyy645815/diary/main/version.txt"
