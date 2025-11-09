@@ -29,9 +29,6 @@ Diary GUI 是一個使用 **Python + Tkinter** 製作的簡易圖形化日記應
 ├─ .gitignore # 忽略不需上傳的檔案設定
 └─ README.md # 專案說明文件
 
-yaml
-複製程式碼
-
 ---
 
 ## 💻 執行方式
@@ -43,7 +40,7 @@ yaml
 pip install requests
 
 python diary_gui.py
-
+```
 🪄 使用打包版 EXE
 若你從 Release 下載執行檔版本，只需 雙擊 diary_gui.exe 即可使用。
 
@@ -57,9 +54,6 @@ python diary_gui.py
 
 📁 資料儲存
 日記資料將自動儲存在同資料夾下的：
-
-pgsql
-複製程式碼
 diary_gui.json
 ⚠️ 若手動刪除該檔案，舊日記資料將無法復原。
 
@@ -86,6 +80,10 @@ https://github.com/yyy645815/diary/releases/latest
 版本	更新內容
 v1.0.0	首次發佈版本，具備 GUI 操作、日記儲存與檢查更新功能
 v1.0.1	移除 upload.bat、自動忽略暫存檔、程式結構優化
+v1.1.0	✨ 新增自動儲存機制（輸入後自動寫入 JSON）
+🕒 新增狀態列顯示「上次自動儲存時間」
+📂 開啟程式時自動載入現有日記資料
+🔧 改善整體穩定性與使用體驗
 
 💬 聯絡方式
 如有錯誤回報、建議或合作洽詢，

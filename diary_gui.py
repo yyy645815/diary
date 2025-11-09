@@ -11,7 +11,7 @@ import requests   # 用來從 GitHub 抓版本號
 
 # ---------- 版本資訊 ----------
 # 本機程式版本號（更新程式時請同步修改這一行 & GitHub 的 version.txt）
-APP_VERSION = "v1.0.1"
+APP_VERSION = "v1.1.0"
 
 # 你的 GitHub 版本檔（raw）網址
 GITHUB_VERSION_URL = "https://raw.githubusercontent.com/yyy645815/diary/main/version.txt"
@@ -52,7 +52,16 @@ class DiaryApp:
         self.diaries: Dict[str, DiaryEntry] = {}
         self.filename = "diary_gui.json"
 
+        # 自動儲存用計時器 & 最後儲存時間
+        self.save_timer = None
+        self.last_save_time: datetime | None = None
+        self.status_label = None  # 之後在 build_ui 裡會建立
+
+        # 建立介面
         self.build_ui()
+
+         # ★ 開啟程式自動讀取既有資料
+        self.load_from_file()
 
     def build_ui(self):
         # --- 左邊：日期列表 ---
@@ -93,6 +102,12 @@ class DiaryApp:
         self.text_content = tk.Text(right_frame, width=50, height=15)
         self.text_content.pack(fill="both", expand=True)
 
+        # ★ 綁定輸入事件，觸發自動儲存
+        self.entry_mood.bind("<KeyRelease>", self.schedule_auto_save)
+        self.text_content.bind("<KeyRelease>", self.schedule_auto_save)
+        # 也可以綁日期（例如手動改日期時）
+        self.entry_date.bind("<FocusOut>", self.schedule_auto_save)
+
         # --- 下方按鈕列 ---
         btn_frame = ttk.Frame(self.root, padding=5)
         btn_frame.grid(row=1, column=0, columnspan=2, sticky="we")
@@ -107,13 +122,28 @@ class DiaryApp:
         ttk.Button(btn_frame, text="讀取檔案", command=self.load_from_file).pack(side="right", padx=2)
         ttk.Button(btn_frame, text="儲存到檔案", command=self.save_to_file).pack(side="right", padx=2)
 
-        # 左下角顯示版本
+        # 左下角顯示版本與最後自動儲存時間
         ttk.Label(btn_frame, text=f"版本：{APP_VERSION}").pack(side="left", padx=10)
+        self.status_label = ttk.Label(btn_frame, text="上次自動儲存：--:--")
+        self.status_label.pack(side="left", padx=10)
 
         # 讓視窗可拉伸
         self.root.columnconfigure(0, weight=1)
         self.root.columnconfigure(1, weight=3)
         self.root.rowconfigure(0, weight=1)
+
+    # ---------- 狀態列更新 ----------
+
+    def update_last_save_status(self):
+        """更新狀態列顯示的『上次自動儲存時間』"""
+        if self.status_label is None:
+            return
+        if self.last_save_time is None:
+            self.status_label.config(text="上次自動儲存：--:--")
+        else:
+            # 只顯示時:分，例如 17:35
+            t_str = self.last_save_time.strftime("%H:%M")
+            self.status_label.config(text=f"上次自動儲存：{t_str}")
 
     # ---------- UI 操作邏輯 ----------
 
@@ -128,7 +158,10 @@ class DiaryApp:
             self.listbox.insert(tk.END, f"{date}（{e.心情}） {first_line}")
 
     def on_select_date(self, event=None):
-        """點選左邊日期時載入內容"""
+        """點選左邊日期時：先自動儲存目前內容，再載入新日期"""
+        # 先試著自動存一下當前內容（靜默，不跳視窗）
+        self.save_current_entry(silent=True)
+
         selection = self.listbox.curselection()
         if not selection:
             return
@@ -142,6 +175,9 @@ class DiaryApp:
     def load_entry_to_form(self, date: str):
         entry = self.diaries.get(date)
         if not entry:
+            # 沒有這天，清空表單但保留日期
+            self.clear_form()
+            self.entry_date.insert(0, date)
             return
         self.entry_date.delete(0, tk.END)
         self.entry_date.insert(0, entry.日期)
@@ -155,15 +191,29 @@ class DiaryApp:
         self.entry_mood.delete(0, tk.END)
         self.text_content.delete("1.0", tk.END)
 
+    # ---------- 自動儲存邏輯 ----------
+
+    def schedule_auto_save(self, event=None):
+        """鍵盤輸入時呼叫：延遲 1 秒後自動儲存（防抖）"""
+        if self.save_timer is not None:
+            self.root.after_cancel(self.save_timer)
+        # 1000 毫秒後執行靜默儲存
+        self.save_timer = self.root.after(1000, lambda: self.save_current_entry(silent=True))
+
     # ---------- 日記操作 ----------
 
     def new_today(self):
         """今天新日記"""
+        # 先靜默存目前內容
+        self.save_current_entry(silent=True)
         self.clear_form()
         self.entry_date.insert(0, 今天字串())
 
     def new_custom_date(self):
         """指定日期新日記"""
+        # 先靜默存目前內容
+        self.save_current_entry(silent=True)
+
         d = simpledialog.askstring("指定日期", "請輸入日期（YYYY-MM-DD）：")
         if not d:
             return
@@ -174,24 +224,35 @@ class DiaryApp:
         self.clear_form()
         self.entry_date.insert(0, d)
 
-    def save_current_entry(self):
-        """儲存右邊正在編輯的這一篇"""
+    def save_current_entry(self, silent: bool = False):
+        """
+        儲存右邊正在編輯的這一篇
+        silent=True 時不跳出成功/錯誤視窗（給自動儲存用）
+        """
         date = self.entry_date.get().strip()
         mood = self.entry_mood.get().strip()
         content = self.text_content.get("1.0", tk.END).rstrip()
 
+        # 沒日期就不存（自動儲存時安靜略過）
         if not date:
-            messagebox.showerror("錯誤", "日期不能是空的。")
+            if not silent:
+                messagebox.showerror("錯誤", "日期不能是空的。")
             return
         if not 檢查日期格式(date):
-            messagebox.showerror("錯誤", "日期格式錯誤，請用 YYYY-MM-DD。")
+            if not silent:
+                messagebox.showerror("錯誤", "日期格式錯誤，請用 YYYY-MM-DD。")
             return
         if not mood:
             mood = "（未填心情）"
 
         self.diaries[date] = DiaryEntry(日期=date, 心情=mood, 內容=content or "(空白)")
+        # ★ 這一行很重要：重畫左邊日期列表
         self.refresh_listbox()
-        messagebox.showinfo("成功", f"{date} 的日記已儲存。")
+        
+        self._write_json()
+
+        if not silent:
+            messagebox.showinfo("成功", f"{date} 的日記已儲存。")
 
     def delete_current_entry(self):
         """刪除目前日期欄位所代表的日記"""
@@ -209,13 +270,23 @@ class DiaryApp:
         del self.diaries[date]
         self.clear_form()
         self.refresh_listbox()
+        self._write_json()
         messagebox.showinfo("已刪除", f"{date} 的日記已刪除。")
 
-    def save_to_file(self):
-        """把所有日記存到 JSON 檔"""
+    # ---------- 檔案 I/O ----------
+
+    def _write_json(self):
+        """實際將 self.diaries 寫入 JSON 檔（不跳視窗）"""
         data = [asdict(e) for e in self.diaries.values()]
         with open(self.filename, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+        # 更新最後儲存時間 & 狀態列
+        self.last_save_time = datetime.now()
+        self.update_last_save_status()
+
+    def save_to_file(self):
+        """手動存檔按鈕：會顯示提示"""
+        self._write_json()
         messagebox.showinfo("儲存成功", f"已儲存到 {self.filename}")
 
     def load_from_file(self):
